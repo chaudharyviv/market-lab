@@ -58,9 +58,22 @@ Out of scope (v1)
 4. At least 30 days of paper-trading with live results within tolerance of the backtest.
 Thresholds are initial and may be tightened, never loosened to rescue a strategy.
 
-## 7. Open decisions
-- Starting capital: ____ INR
-- Risk per trade (default 0.5%), max open risk (5%), max positions (10), sector cap (30%), daily/weekly loss limits (1.5% / 4%): confirm or change.
+## 7. Decisions and open items
+Confirmed (2026-11-23). These replace the earlier defaults (max open risk 5%, max positions 10) and the blank capital.
+| Item | Value | In INR at the starting capital |
+|---|---|---|
+| Starting capital | 5,00,000 INR | 5,00,000 |
+| Risk per trade | 0.5% of capital | 2,500 |
+| Max open positions | 6 | n/a |
+| Max open risk (sum of risk across open positions) | 4% of capital | 20,000 |
+| Sector cap | 30% of capital in one sector | n/a |
+| Daily loss limit | 1.5% of capital | 7,500 |
+| Weekly loss limit | 4% of capital | 20,000 |
+| Horizon | swing | n/a |
+
+Rupee amounts are for the starting capital only; the engine computes them from current capital. These values are not in `config.py` or the database yet.
+
+Still open:
 - Point-in-time membership source: investigate NSE archives; fall back to biased flag.
 - LLM provider for explanations.
 - Liquidity: minimum daily turnover (INR) and the slippage schedule by liquidity band (values go in `config.py`, to be confirmed before Phase 2).
