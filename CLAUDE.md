@@ -21,6 +21,7 @@ Default is Sonnet. Delegate money/signal/validation work to the `market-logic` s
 - `legacy/`: original market-lab code (lab/, sm/, sx/). Do NOT edit; port by copying into `advisor/` with tests.
 - `advisor_schema.sql` and `migrations/`: database schema
 - `docs/decisions.md`: log every non-obvious decision here
+- `docs/data_quality_rules.md`: approved data-quality rules, severity scheme and thresholds; read before touching quality checks
 
 ## Non-negotiables (details in agent.md)
 - No order placement, no broker APIs.
