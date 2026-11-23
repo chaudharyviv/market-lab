@@ -11,7 +11,7 @@ Personal swing-trading advisor for NSE cash-segment stocks. Advisory only: it ne
 - Python 3.10+, SQLite, pandas, numpy. Dependencies are in `requirements.txt`; ask before adding any.
 - Run tests: `pytest`
 - Lint: `ruff check .`
-- Legacy app (reference only): `python app.py`, then open http://localhost:8810
+- Legacy app (reference only): `PYTHONPATH=legacy python app.py` (PowerShell: `$env:PYTHONPATH="legacy"`), then open http://localhost:8810
 
 ## Layout
 - `advisor/`: the new code (data, signals, validation, portfolio, advisor, journal, alerts)

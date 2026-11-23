@@ -1,0 +1,6 @@
+# INERT until the user approves adding pre-commit as a dependency (agent.md rule 8). Not installed.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.5
+    hooks:
+      - id: ruff
