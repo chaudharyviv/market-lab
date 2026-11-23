@@ -4,10 +4,10 @@ Work in small phases. Do not start a phase until the previous phase's exit crite
 Each task = one commit with tests. Reuse from market-lab: cost model, regime filter, portfolio simulator.
 
 ## Phase 0: Repo prep
-- [ ] Fork `heysanjeevv/market-lab`; move original `lab/`, `sm/`, `sx/` into `legacy/` (do not edit).
-- [ ] Create package skeleton: `advisor/{config,data,signals,validation,portfolio,advisor,journal,alerts}`, `tests/`.
-- [ ] `config.py`, logging, `.env.example`, pytest, ruff, pre-commit.
-- [ ] Run legacy app once on a personal machine to confirm behaviour; save a baseline of its swing backtest output for comparison.
+- [x] Fork `heysanjeevv/market-lab`; move original (fork = this repo; moved as pure renames) `lab/`, `sm/`, `sx/` into `legacy/` (do not edit).
+- [x] Create package skeleton: `advisor/{config,data,signals,validation,portfolio,advisor,journal,alerts}`, `tests/`.
+- [~] `config.py`, logging, `.env.example`, pytest, ruff done; pre-commit NOT installed (awaiting approval to add the dependency).
+- [x] Run legacy app once (baseline in `baselines/legacy_swing/`) on a personal machine to confirm behaviour; save a baseline of its swing backtest output for comparison.
 Exit: `pytest` passes on an empty skeleton; baseline saved.
 
 ## Phase 1: Data layer
