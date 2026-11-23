@@ -1,7 +1,7 @@
 """Pins the approved Phase 1 data-quality constants. Changing one means a deliberate edit here, a line in
 docs/decisions.md, and (for thresholds) tightening only. Cleaning reads of holdout bars rely on these staying
 frozen until the Phase 3 evaluation."""
-from datetime import time
+from datetime import date, time
 
 import pytest
 
@@ -12,8 +12,9 @@ PINNED = {
     "EOD_READY_IST": time(19, 0), "RUN_DEADLINE_IST": time(21, 30),
     "SESSION_OPEN_IST": time(9, 15), "SESSION_OPEN_TOL_MIN": 30,
     "OHLC_TOL_PCT": 0.05, "MOVE_LARGE_PCT": 20.0, "MOVE_EXTREME_PCT": 35.0,
-    "SPLIT_RATIO_TOL_PCT": 3.0, "SPLIT_PERSIST_SESSIONS": 3, "CORP_ACTION_WINDOW_SESSIONS": 3,
-    "SPLIT_PERSIST_BAND_PCT": 10.0, "SPLIT_VOLUME_CONFIRM_FRAC": 0.8,
+    "SPLIT_RATIO_TOL_PCT": 3.0, "CORP_ACTION_WINDOW_SESSIONS": 3, "EVENT_JUMP_WINDOW_SESSIONS": 2,
+    "NONPOSITIVE_BLOCK_COUNT": 2, "NONPOSITIVE_BLOCK_WINDOW_SESSIONS": 252,
+    "BAD_BAR_CLUSTER_LIMIT": 3, "BAD_BAR_CLUSTER_WINDOW_SESSIONS": 63,
     "BAD_PRINT_REVERT_PCT": 25.0, "BAD_PRINT_RETURN_BAND_PCT": 10.0, "BAD_PRINT_WICK_CLOSE_MAX_PCT": 20.0,
     "BAD_PRINT_LOW_VOLUME_FRAC": 0.10, "VOLUME_MEDIAN_WINDOW": 20,
     "VOL0_RUN_WARN": 3, "VOL0_RUN_ERROR": 5, "VOL0_RATIO_WINDOW": 252, "VOL0_RATIO_MAX_PCT": 2.0,
@@ -27,7 +28,10 @@ PINNED = {
     "FETCH_TIMEOUT_S": 20, "FETCH_MAX_RETRIES": 4, "FETCH_BACKOFF_BASE_S": 2, "FETCH_DELAY_S": 0.5,
     "FETCH_429_WAIT_S": 60, "FETCH_429_MAX_CONSECUTIVE": 3, "FETCH_BATCH_SIZE": 1,
     "PRICE_SOURCE_ORDER": ("yahoo",), "PRICE_CROSSCHECK_SOURCES": ("nse_bhavcopy",),
-    "RUN_METADATA_REQUIRED_KEYS": ("symbols_blocked", "symbols_entry_suppressed"),
+    "MOVE_UNCLASSIFIED_REVIEW_SESSIONS": 252,
+    "RUN_METADATA_REQUIRED_KEYS": (
+        "symbols_blocked", "symbols_entry_suppressed", "move_unclassified_events",
+        "move_unclassified_unreviewed_recent"),
 }
 
 
@@ -51,6 +55,17 @@ def test_thresholds_are_ordered_sensibly():
     assert config.GAP_RUN_WARN < config.GAP_RUN_ERROR
     assert config.GAP_RATIO_WARN_PCT < config.GAP_RATIO_ERROR_PCT
     assert config.STALE_SYMBOL_PCT_REPORT < config.STALE_SYMBOL_PCT_MAX
+
+
+def test_history_start():
+    assert config.HISTORY_START == date(2005, 1, 1)
+
+
+def test_removed_split_constants_stay_removed():
+    """Volume is not split evidence and the price-pattern path needs no persistence window (user decision)."""
+    for name in ("SPLIT_PERSIST_SESSIONS", "SPLIT_PERSIST_BAND_PCT", "SPLIT_VOLUME_CONFIRM_FRAC",
+                 "SPLIT_VOLUME_POST_SESSIONS", "SPLIT_VOLUME_PART_SESSIONS"):
+        assert not hasattr(config, name), name
 
 
 def test_holdout_is_the_fixed_window():

@@ -44,9 +44,10 @@ def replace_symbol_history(
     history is left exactly as it was. In the same transaction: the optional `split` (ex_date, ratio) is
     recorded in corporate_actions, the symbol's open bar/span quarantines are resolved as 'history_replaced'
     (the re-check re-creates any that still apply), and an info row goes to data_quality_log. Last, and
-    always (there is no flag to skip it), `quality.recheck_symbol` re-runs the split checks on the new history
-    in the SAME transaction: a clean result resolves the symbol's split blocks as 'recheck_clean', a dirty one
-    keeps them. If the re-check raises, the whole replacement rolls back.
+    always (there is no flag to skip it), `quality.recheck_symbol(..., after_replacement=True)` re-runs the
+    quality rules on the new history in the SAME transaction: a clean result resolves the symbol's blocks as
+    'recheck_clean'; an event detected before and still unadjusted is converted to a span (the vendor cannot
+    fix it). If the re-check raises, the whole replacement rolls back.
     """
     if not bars:
         raise ValueError(f"refusing to replace history for {symbol} with zero bars")
@@ -76,5 +77,5 @@ def replace_symbol_history(
             "VALUES (?, ?, ?, 'history_replaced', 'info', ?)",
             (now, run_id, symbol, json.dumps({"rows_deleted": deleted, "rows_inserted": len(rows)})),
         )
-        recheck = recheck_symbol(conn, symbol, run_id)
+        recheck = recheck_symbol(conn, symbol, run_id, after_replacement=True)
     return ReplaceResult(rows_inserted=len(rows), still_blocked=recheck.still_blocked, recheck=recheck)

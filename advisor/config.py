@@ -32,6 +32,9 @@ LOG_LEVEL = os.environ.get("ADVISOR_LOG_LEVEL", "INFO").strip().upper() or "INFO
 HOLDOUT_START = date(2025, 11, 24)
 HOLDOUT_END = date(2026, 11, 23)
 
+# First date of daily history the fetcher requests (explicit period1, never range=max).
+HISTORY_START = date(2005, 1, 1)
+
 # ---------------------------------------------------------------------------------------------------------
 # Database
 DB_BUSY_TIMEOUT_S = 30  # seconds a connection waits on a locked database before raising
@@ -51,15 +54,19 @@ MOVE_LARGE_PCT = 20.0  # |one-day move| above this: warn + split-ratio test
 MOVE_EXTREME_PCT = 35.0  # above this (close-to-close or wick): flag, keep the bar, no new entry that day
 SPLIT_RATIOS = (1.25, 4 / 3, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 10.0, 20.0)  # also tested inverted (reverse split)
 SPLIT_RATIO_TOL_PCT = 3.0
-SPLIT_PERSIST_SESSIONS = 3  # sessions the price must stay at the new level
-SPLIT_PERSIST_BAND_PCT = 10.0  # "stays at the new level": each of those closes within this % of the ex-date close
-SPLIT_VOLUME_CONFIRM_FRAC = 0.8  # volume evidence: post/pre median volume >= this * ratio (<= ratio / this if reverse)
 CORP_ACTION_WINDOW_SESSIONS = 3  # +/- sessions around ex-date that explain a move
+EVENT_JUMP_WINDOW_SESSIONS = 2  # +/- stored sessions around a recorded ex-date searched for its unadjusted jump
 BAD_PRINT_REVERT_PCT = 25.0  # next-day reversal size
 BAD_PRINT_RETURN_BAND_PCT = 10.0  # next close within this % of the pre-move close
 BAD_PRINT_WICK_CLOSE_MAX_PCT = 20.0  # extreme wick with a close inside this %
 BAD_PRINT_LOW_VOLUME_FRAC = 0.10  # volume below this fraction of the median
 VOLUME_MEDIAN_WINDOW = 20  # sessions
+
+# Symbol blocks for suspected corruption from repeated bad bars (counted in OPEN 'bar' quarantines, by stored bar).
+NONPOSITIVE_BLOCK_COUNT = 2  # price_nonpositive bars ...
+NONPOSITIVE_BLOCK_WINDOW_SESSIONS = 252  # ... within the symbol's most recent N stored sessions
+BAD_BAR_CLUSTER_LIMIT = 3  # bad-print-type bars ...
+BAD_BAR_CLUSTER_WINDOW_SESSIONS = 63  # ... within any N consecutive stored sessions
 
 VOL0_RUN_WARN = 3  # consecutive zero-volume bars (stocks only)
 VOL0_RUN_ERROR = 5  # run hidden from prices_clean
@@ -95,8 +102,15 @@ NOT_FOUND_RUNS_ESCALATE = 3
 # pre-holdout / holdout, counts only) has been produced and approved. Everything else is report-only.
 QUALITY_ENFORCED_RULES: frozenset[str] = frozenset()
 
+# move_unclassified events within this many stored sessions must be reviewed (Phase 1 exit: none left open).
+MOVE_UNCLASSIFIED_REVIEW_SESSIONS = 252
 # Every run's metadata must carry these counts (see advisor.data.runs.finish_run).
-RUN_METADATA_REQUIRED_KEYS = ("symbols_blocked", "symbols_entry_suppressed")
+RUN_METADATA_REQUIRED_KEYS = (
+    "symbols_blocked",
+    "symbols_entry_suppressed",
+    "move_unclassified_events",  # every move_unclassified event ever logged (reviewed or not)
+    "move_unclassified_unreviewed_recent",  # open ones within MOVE_UNCLASSIFIED_REVIEW_SESSIONS; Phase 1 exit: 0
+)
 
 # ---------------------------------------------------------------------------------------------------------
 # Fetchers (Phase 1; not written yet). Sequential, one symbol per request. On HTTP 429: wait, never work around.

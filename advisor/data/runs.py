@@ -22,13 +22,36 @@ def start_run(conn: sqlite3.Connection, kind: str) -> str:
 
 
 def affected_symbol_counts(conn: sqlite3.Connection, session_date: date | str) -> dict[str, int]:
-    """Counts every run must record: symbols blocked now, and symbols with new entries suppressed on the date."""
+    """Counts every run must record (config.RUN_METADATA_REQUIRED_KEYS): symbols blocked now, symbols with new
+    entries suppressed on the date, every `move_unclassified` event, and how many of those inside the review
+    window (last MOVE_UNCLASSIFIED_REVIEW_SESSIONS stored dates) are still unreviewed (open)."""
     day = session_date.isoformat() if isinstance(session_date, date) else session_date
     blocked = conn.execute("SELECT COUNT(*) FROM blocked_symbols").fetchone()[0]
     suppressed = conn.execute(
         "SELECT COUNT(DISTINCT symbol) FROM entry_suppressed WHERE date = ?", (day,)
     ).fetchone()[0]
-    return {"symbols_blocked": blocked, "symbols_entry_suppressed": suppressed}
+    events = conn.execute(
+        "SELECT COUNT(*) FROM quality_quarantine WHERE scope = 'entry' AND check_name = 'move_unclassified' "
+        "AND from_date <= ?",
+        (day,),
+    ).fetchone()[0]
+    # Review window: the most recent MOVE_UNCLASSIFIED_REVIEW_SESSIONS distinct stored dates up to the session.
+    cutoff_row = conn.execute(
+        "SELECT date FROM prices_daily WHERE date <= ? GROUP BY date ORDER BY date DESC LIMIT 1 OFFSET ?",
+        (day, config.MOVE_UNCLASSIFIED_REVIEW_SESSIONS - 1),
+    ).fetchone()
+    cutoff = cutoff_row[0] if cutoff_row else "0000-00-00"
+    unreviewed = conn.execute(
+        "SELECT COUNT(*) FROM quality_quarantine WHERE scope = 'entry' AND check_name = 'move_unclassified' "
+        "AND resolved_at IS NULL AND from_date >= ? AND from_date <= ?",
+        (cutoff, day),
+    ).fetchone()[0]
+    return {
+        "symbols_blocked": blocked,
+        "symbols_entry_suppressed": suppressed,
+        "move_unclassified_events": events,
+        "move_unclassified_unreviewed_recent": unreviewed,
+    }
 
 
 def finish_run(conn: sqlite3.Connection, run_id: str, status: str, metadata: dict) -> None:
