@@ -3,3 +3,7 @@ __pycache__/
 data/
 *.pyc
 .DS_Store
+
+.env
+*.db
+*.sqlite
