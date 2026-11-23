@@ -31,10 +31,10 @@ Out of scope (v1)
 ## 4. Functional requirements
 | ID | Requirement |
 |----|-------------|
-| F1 | Fetch, validate and store daily OHLCV for the universe in SQLite, with a data-quality log. |
+| F1 | Fetch, validate and store daily OHLCV for the universe in SQLite, with a data-quality log. The current session's bar is excluded until after the close (section 9.7). |
 | F2 | Keep point-in-time index membership and delisted names where obtainable; otherwise flag every backtest as survivorship-biased. |
-| F3 | Backtest swing strategies with the existing delivery cost model, next-open entries and gap-aware stops. |
-| F4 | Validate with walk-forward splits and an untouched final holdout; record the number of variants tried. |
+| F3 | Backtest swing strategies with the delivery cost model, liquidity-dependent slippage (replaces the legacy flat 0.05% per side), next-open entries, gap-aware stops, and close-triggered exits filled at the next open (section 9). |
+| F4 | Validate with walk-forward splits and an untouched final holdout. Strategies and parameters are chosen inside walk-forward windows only; the strategy list and exit choices are declared before testing; the number of variants tried is recorded. |
 | F5 | A strategy may advise only after passing the promotion gates in section 6. |
 | F6 | Store my profile (capital, risk per trade, limits) and my transactions; derive open positions. |
 | F7 | Size each new trade from capital, stop distance and risk per trade; refuse trades that breach guardrails. |
@@ -42,6 +42,8 @@ Out of scope (v1)
 | F9 | Rules engine decides; an LLM only writes the explanation from the engine's JSON facts. |
 | F10 | Log every signal and recommendation; paper-trade them; report live hit rate, R-multiple and drawdown vs the backtest. |
 | F11 | Alert on triggers, stop/target hits, data failures and guardrail breaches. |
+| F12 | Apply a minimum daily-turnover filter to the tradable universe and a slippage assumption that depends on liquidity. Thresholds live in `config.py`. |
+| F13 | Evaluate every strategy at portfolio level (max drawdown, Sharpe, worst month), with risk-based position sizing, not only per trade. |
 
 ## 5. Non-functional requirements
 - Reproducible: the same data snapshot and config give the same signals.
@@ -50,7 +52,7 @@ Out of scope (v1)
 - No secrets in the repo. Config in `config.py` / `.env`.
 
 ## 6. Promotion gates (a strategy advises only if ALL hold)
-1. Positive net expectancy after costs in at least 4 of 5 calendar years.
+1. Positive net expectancy after costs in at least 4 of 5 buckets: 2022, 2023, 2024, 2025 (1 Jan to 2025-11-23, the day before the holdout starts), and the holdout year (2025-11-24 to 2026-11-23). Each bucket is reported separately.
 2. Positive on the untouched holdout period, not used for any choice.
 3. Beats the equal-weight universe and Nifty on risk-adjusted return, with the variants-tested count reported.
 4. At least 30 days of paper-trading with live results within tolerance of the backtest.
@@ -61,7 +63,19 @@ Thresholds are initial and may be tightened, never loosened to rescue a strategy
 - Risk per trade (default 0.5%), max open risk (5%), max positions (10), sector cap (30%), daily/weekly loss limits (1.5% / 4%): confirm or change.
 - Point-in-time membership source: investigate NSE archives; fall back to biased flag.
 - LLM provider for explanations.
+- Liquidity: minimum daily turnover (INR) and the slippage schedule by liquidity band (values go in `config.py`, to be confirmed before Phase 2).
 
 ## 8. Success criteria
 - A daily report I can act on in 10 minutes.
 - Live paper results track the validated backtest within tolerance for 3 months before I commit real capital.
+
+## 9. Modelling assumptions and known caveats
+Decided 2026-11-23. Each applies to every backtest and report unless stated otherwise.
+1. **Pre-tax results.** All results are before tax. The fixed 20% short-term capital gains tax is ignored on purpose, so reported returns overstate what is kept after tax. Transaction costs (brokerage, STT, exchange and other charges) are still modelled.
+2. **Liquidity and slippage.** A minimum daily-turnover filter (close x volume, INR, over a trailing window) decides which symbols are tradable on a given day. Slippage per side depends on liquidity (more for thinner names) and replaces the legacy flat 0.05% per side. The filter threshold, window and slippage schedule are constants in `config.py`, to be confirmed with the user before Phase 2.
+3. **Sizing and portfolio evaluation.** Positions are sized by risk (capital x risk per trade / stop distance), not equal weight. Every strategy is evaluated at portfolio level (max drawdown, Sharpe, worst calendar month) as well as per trade.
+4. **Exits.** An exit triggered by a close (signal at the close of day t) fills at the open of day t+1. Stops and targets hit intraday keep gap-aware fills. This is fixed in the Phase 2 port of the legacy `follow()` logic.
+5. **Selection discipline.** Strategies and parameters are chosen inside walk-forward windows only, never on the full period. The strategy list and exit choices are declared before testing, in a file committed before any run, and the variants-tested count is recorded per run. Section 6 is not changed by this section.
+6. **Zero-edge random-data check.** Phase 3 runs the engine on randomised zero-edge data to show how much of a result luck alone can produce. Method: cut the days into blocks of 20 days and permute the blocks with one permutation applied to all symbols (so cross-sectional structure is kept); shuffle whole bars (gap, range and volume move together); set drift to zero; keep costs; run many seeds; use no holdout dates. The real result is read against the resulting distribution.
+7. **Partial bars.** The current session's bar is excluded until after the close (`EOD_READY_IST`); Phase 1 drops it. The Phase 0 baseline's last day (2026-11-23) was fetched during market hours and is treated as possibly partial. It is also the last day of the holdout window (`config.HOLDOUT_END`).
+8. **Universe caveat (survivorship and membership).** The universe is today's Nifty 500 + F&O list, so every backtest on it is survivorship-biased and not point-in-time for index membership. Delisted names and historical membership are included only where obtainable. Every backtest run records this caveat (`point_in_time_universe` and a caveat note in its metrics) and every report that quotes a result repeats it.
