@@ -43,3 +43,20 @@ Stop and ask. A wrong guess in sizing, costs or validation is more expensive tha
 - GitHub: PRs and issues.
 - A library-docs server (such as Context7) for pandas/SQLite API lookups.
 Not needed: any trading or market-data MCP. Keep the data path in our own tested code.
+
+## Model routing
+Default model is Sonnet. Anything where a mistake changes money, signals or validation results goes to the
+`market-logic` subagent (Opus), defined in `.claude/agents/market-logic.md`. Delegate these to it, and do not
+do them on Sonnet:
+- Data-quality rules: what counts as a bad bar, stale bar, split or gap (Phase 1).
+- Cost model, strategy and feature code, entry/exit mechanics, no-look-ahead tests (Phase 2).
+- Everything in Phase 3: walk-forward, holdout, variants-tested penalty, promotion-gate evaluation.
+- Position sizing and portfolio guardrails (Phase 4).
+- The rules engine and the check that explanations add no numbers (Phase 5).
+- Reviewing any backtest or paper-trading result before it is trusted.
+
+Sonnet is fine for: repo scaffolding, fetchers and plumbing, migrations (after I approve the schema), CLI,
+report formatting, alerts, docs.
+
+The holdout period is set once in `config.py`. Never print or compute holdout metrics except in the final
+Phase 3 evaluation I explicitly ask for.

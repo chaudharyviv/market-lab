@@ -13,6 +13,9 @@ Personal swing-trading advisor for NSE cash-segment stocks. Advisory only: it ne
 - Lint: `ruff check .`
 - Legacy app (reference only): `PYTHONPATH=legacy python app.py` (PowerShell: `$env:PYTHONPATH="legacy"`), then open http://localhost:8810
 
+## Models
+Default is Sonnet. Delegate money/signal/validation work to the `market-logic` subagent (Opus); see "Model routing" in `agent.md`.
+
 ## Layout
 - `advisor/`: the new code (data, signals, validation, portfolio, advisor, journal, alerts)
 - `legacy/`: original market-lab code (lab/, sm/, sx/). Do NOT edit; port by copying into `advisor/` with tests.
